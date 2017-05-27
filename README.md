@@ -10,7 +10,7 @@ The lambda function is designed to be called from New Relic as a WebHook, which 
 
 ## Setup
 
-There is a few bits to setup and get working to make this work, which I'll aim to document at some point. Untile then, there are some screenshots in [this](newrelic-hipchat-lambda.md) file, which attempt to outline the steps.
+There is a few bits to setup and get working to make this work, which I'll aim to document at some point. Untile then, there are some screenshots in [this](aws-nr-setup.md) file, which attempt to outline the steps.
 
 
 
