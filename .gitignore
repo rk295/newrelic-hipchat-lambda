@@ -1,0 +1,5 @@
+.idea/
+*.zip
+venv/
+.DS_Store
+vars.sh.full

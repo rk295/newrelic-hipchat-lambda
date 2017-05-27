@@ -1,0 +1,12 @@
+appdirs==1.4.3
+hypchat==0.18
+oauthlib==0.7.2
+packaging==16.8
+pyparsing==2.2.0
+pystache==0.5.4
+python-dateutil==2.4.2
+python-simple-hipchat==0.4.0
+python-twitter==2.2
+requests==2.6.0
+requests-oauthlib==0.4.2
+six==1.9.0
