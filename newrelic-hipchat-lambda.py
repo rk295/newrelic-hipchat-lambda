@@ -50,12 +50,11 @@ def lambda_handler(event=None, context=None):
 
     # Get all these from env vars set inside the lambda job.
     hipchat_server = os.getenv('HIPCHAT_URL') or None
-    room_id = os.getenv('ROOM_ID') or None
     token = os.getenv('TOKEN') or None
 
     # We can't continue without these, so error if they are blank
-    if hipchat_server is None or room_id is None or token is None:
-        err_msg = "You must set the HIPCHAT_URL, ROOM_ID and TOKEN environment variables"
+    if hipchat_server is None or token is None:
+        err_msg = "You must set the HIPCHAT_URL and TOKEN environment variables"
         return error_response(err_msg, response)
 
     try:
@@ -66,6 +65,12 @@ def lambda_handler(event=None, context=None):
         return error_response(err_msg, response)
 
     hipchat = HypChat(token, endpoint=hipchat_server)
+
+    room_id = body["hipchat_room"]
+
+    if room_id is None:
+        err_msg = "No hipchat_room found in body, cannot continue"
+        return error_response(err_msg, response, 500)
 
     try:
         nr_room = hipchat.get_room(room_id)
@@ -158,7 +163,7 @@ if __name__ == "__main__":
     true = True
 
     payload = {
-        "body": "{\"owner\":\"\",\"severity\":\"INFO\",\"policy_url\":\"https://alerts.newrelic.com/accounts/0000000/policies/99999\",\"current_state\":\"open\",\"policy_name\":\"Robin Kearney's policy\",\"incident_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470\",\"incident_acknowledge_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470/acknowledge\",\"targets\":[{\"id\":\"3629392770913172224\",\"name\":\"3629392770913172224\",\"link\":\"https://infrastructure.newrelic.com/accounts/0000000/alertLanding?violationId=jklfelsdjkljfkldsjfkljkl\",\"labels\":{},\"product\":\"INFRASTRUCTURE\",\"type\":\"Host\"}],\"condition_id\":9999999,\"account_id\":0000000,\"event_type\":\"INCIDENT\",\"incident_id\":99999,\"runbook_url\":null,\"account_name\":\"RK-TEST-ACCOUNT\",\"details\":\"All CPU: Critical on git-192-168-70-171\",\"condition_name\":\"All CPU\",\"timestamp\":1495832844317}",
+        "body": "{\"owner\":\"\",\"severity\":\"INFO\",\"policy_url\":\"https://alerts.newrelic.com/accounts/0000000/policies/99999\",\"current_state\":\"open\",\"policy_name\":\"Robin Kearney's policy\",\"incident_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470\",\"incident_acknowledge_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470/acknowledge\",\"targets\":[{\"id\":\"3629392770913172224\",\"name\":\"3629392770913172224\",\"link\":\"https://infrastructure.newrelic.com/accounts/0000000/alertLanding?violationId=jklfelsdjkljfkldsjfkljkl\",\"labels\":{},\"product\":\"INFRASTRUCTURE\",\"type\":\"Host\"}],\"condition_id\":9999999,\"account_id\":0000000,\"event_type\":\"INCIDENT\",\"incident_id\":99999,\"runbook_url\":null,\"account_name\":\"RK-TEST-ACCOUNT\",\"details\":\"All CPU: Critical on git-192-168-70-171\",\"condition_name\":\"All CPU\",\"timestamp\":1495832844317, \"hipchat_room\":657}",
         "resource": "/newrelic-hipchat-lambda",
         "requestContext": {
             "resourceId": "a99a99",
