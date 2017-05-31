@@ -66,7 +66,7 @@ def lambda_handler(event=None, context=None):
 
     hipchat = HypChat(token, endpoint=hipchat_server)
 
-    room_id = body["hipchat_room"]
+    room_id = body.get("hipchat_room")
 
     if room_id is None:
         err_msg = "No hipchat_room found in body, cannot continue"
@@ -163,11 +163,11 @@ if __name__ == "__main__":
     true = True
 
     payload = {
-        "body": "{\"owner\":\"\",\"severity\":\"INFO\",\"policy_url\":\"https://alerts.newrelic.com/accounts/0000000/policies/99999\",\"current_state\":\"open\",\"policy_name\":\"Robin Kearney's policy\",\"incident_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470\",\"incident_acknowledge_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470/acknowledge\",\"targets\":[{\"id\":\"3629392770913172224\",\"name\":\"3629392770913172224\",\"link\":\"https://infrastructure.newrelic.com/accounts/0000000/alertLanding?violationId=jklfelsdjkljfkldsjfkljkl\",\"labels\":{},\"product\":\"INFRASTRUCTURE\",\"type\":\"Host\"}],\"condition_id\":9999999,\"account_id\":0000000,\"event_type\":\"INCIDENT\",\"incident_id\":99999,\"runbook_url\":null,\"account_name\":\"RK-TEST-ACCOUNT\",\"details\":\"All CPU: Critical on git-192-168-70-171\",\"condition_name\":\"All CPU\",\"timestamp\":1495832844317, \"hipchat_room\":657}",
+            "body": "{\"owner\":\"\",\"severity\":\"INFO\",\"policy_url\":\"https://alerts.newrelic.com/accounts/0000000/policies/99999\",\"current_state\":\"open\",\"policy_name\":\"Robin Kearney's policy\",\"incident_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470\",\"incident_acknowledge_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470/acknowledge\",\"targets\":[{\"id\":\"3629392770913172224\",\"name\":\"3629392770913172224\",\"link\":\"https://infrastructure.newrelic.com/accounts/0000000/alertLanding?violationId=jklfelsdjkljfkldsjfkljkl\",\"labels\":{},\"product\":\"INFRASTRUCTURE\",\"type\":\"Host\"}],\"condition_id\":9999999,\"account_id\":1000000,\"event_type\":\"INCIDENT\",\"incident_id\":99999,\"runbook_url\":null,\"account_name\":\"RK-TEST-ACCOUNT\",\"details\":\"All CPU: Critical on git-192-168-70-171\",\"condition_name\":\"All CPU\",\"timestamp\":1495832844317, \"hipchat_room\": 657}",
         "resource": "/newrelic-hipchat-lambda",
         "requestContext": {
             "resourceId": "a99a99",
-            "apiId": "redacted"",
+            "apiId": "redacted",
             "resourcePath": "/newrelic-hipchat-lambda",
             "httpMethod": "POST",
             "requestId": "test-invoke-request",
