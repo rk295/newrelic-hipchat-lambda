@@ -13,4 +13,9 @@ if [[ -e "vars.sh" ]]; then
     source vars.sh
 fi
 
+if [[ -e "local.vars.sh" ]]; then
+    echo "Local override vars found, including in environment"
+    source local.vars.sh
+fi
+
 python newrelic-hipchat-lambda.py

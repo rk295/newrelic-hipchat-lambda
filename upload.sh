@@ -19,8 +19,13 @@ if [[ -e "vars.sh" ]]; then
     source vars.sh
 fi
 
-functionName="${ZIP_NAME%%.zip}"
+if [[ -e "local.vars.sh" ]]; then
+    echo "Local override vars found, including in environment"
+    source local.vars.sh
+fi
 
+functionName="${ZIP_NAME%%.zip}"
+set -x
 aws lambda \
     update-function-code \
     --function-name "$functionName" \

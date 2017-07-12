@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # The full url to your hipchat server
 export HIPCHAT_URL="https://hipchat...../"
 
