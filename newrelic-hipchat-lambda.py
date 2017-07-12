@@ -5,6 +5,7 @@ import os
 import json
 import requests  # Needed for exceptions
 import pystache
+import re
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(funcName)s:%(lineno)d %(message)s')
@@ -91,6 +92,21 @@ def lambda_handler(event=None, context=None):
     else:
         colour = "gray"
 
+    # Also support the case where we derive the severity from
+    # the condition_name field.
+
+    match = re.match( r'.*-(\w*)$', body["condition_name"])
+
+    if match:
+        if match.group(1) == "error":
+            logger.debug("Detected a error condition in the condition_name field")
+            colour = "red"
+            body["severity"] = "ERROR"
+        elif match.group(1) == "warn":
+            logger.debug("Detected a warn condition in the condition_name field")
+            body["severity"] = "WARNING"
+            colour = "yellow"
+
     # The targets object in the payload is actually a list, however
     # after much testing, I've never been able to produce an alert
     # with more than a single item in it, if somebody shows me an
@@ -98,11 +114,16 @@ def lambda_handler(event=None, context=None):
     # I'm treating that as a never seen edge case!
     incident_data = body["targets"][0]["link"]
 
+    # Bit hacky, pushing this back into the top level of the body object
+    # to make the pystache rendering easier
+    body["incident_data"] = incident_data
+
     # Description kept short, most of the data is in the attributes
-    description = "Click <a href='%s'>here</a> to acknowledge, or <a href='%s'>here</a> to view the data about this alert" % (
+    description = "Click <a href='%s'><b>here</b></a> to acknowledge, or <a href='%s'><b>here</b></a> to view the data about this alert" % (
         body["incident_acknowledge_url"], incident_data)
 
     # Push the description into the card object
+    card["description"]["format"] = "html"
     card["description"]["value"] = description
 
     # render the fall back html template
@@ -113,7 +134,7 @@ def lambda_handler(event=None, context=None):
     # This is the list of attributes we pull out of the payload. If you
     # want others, you can add them here.
     attribute_list = ["details", "severity",
-                      "current_state", "account_name", "condition_name"]
+                      "current_state", "account_name", "condition_name", "policy_name"]
 
     for attr in attribute_list:
         attr_dict = {}
@@ -124,11 +145,11 @@ def lambda_handler(event=None, context=None):
 
         # Add a lozenge to the severity field. Vague docs:
         # https://docs.atlassian.com/aui/5.9.20/docs/lozenges.html
-        if attr == "severity" and body[attr] == "CRITICAL":
+        if attr == "severity" and colour == "red":
             attr_dict["value"]["style"] = "lozenge-error"
-        if attr == "severity" and body[attr] == "WARN":
+        elif attr == "severity" and colour =="yellow":
             attr_dict["value"]["style"] = "lozenge-current"
-        if attr == "severity" and body[attr] == "INFO":
+        elif attr == "severity":
             attr_dict["value"]["style"] = "lozenge-complete"
 
         card["attributes"].append(attr_dict)
@@ -162,8 +183,11 @@ if __name__ == "__main__":
     false = False
     true = True
 
-    payload = {
-            "body": "{\"owner\":\"\",\"severity\":\"INFO\",\"policy_url\":\"https://alerts.newrelic.com/accounts/0000000/policies/99999\",\"current_state\":\"open\",\"policy_name\":\"Robin Kearney's policy\",\"incident_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470\",\"incident_acknowledge_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470/acknowledge\",\"targets\":[{\"id\":\"3629392770913172224\",\"name\":\"3629392770913172224\",\"link\":\"https://infrastructure.newrelic.com/accounts/0000000/alertLanding?violationId=jklfelsdjkljfkldsjfkljkl\",\"labels\":{},\"product\":\"INFRASTRUCTURE\",\"type\":\"Host\"}],\"condition_id\":9999999,\"account_id\":1000000,\"event_type\":\"INCIDENT\",\"incident_id\":99999,\"runbook_url\":null,\"account_name\":\"RK-TEST-ACCOUNT\",\"details\":\"All CPU: Critical on git-192-168-70-171\",\"condition_name\":\"All CPU\",\"timestamp\":1495832844317, \"hipchat_room\": 657}",
+    payloads = []
+
+    # Full payload
+    payloads.append({
+            "body": "{\"owner\":\"\",\"severity\":\"INFO\",\"policy_url\":\"https://alerts.newrelic.com/accounts/0000000/policies/99999\",\"current_state\":\"open\",\"policy_name\":\"Robin Kearney's policy\",\"incident_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470\",\"incident_acknowledge_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470/acknowledge\",\"targets\":[{\"id\":\"3629392770913172224\",\"name\":\"3629392770913172224\",\"link\":\"https://infrastructure.newrelic.com/accounts/0000000/alertLanding?violationId=jklfelsdjkljfkldsjfkljkl\",\"labels\":{},\"product\":\"INFRASTRUCTURE\",\"type\":\"Host\"}],\"condition_id\":9999999,\"account_id\":1000000,\"event_type\":\"INCIDENT\",\"incident_id\":99999,\"runbook_url\":null,\"account_name\":\"RK-TEST-ACCOUNT\",\"details\":\"All CPU: Critical on git-192-168-70-171\",\"condition_name\":\"All CPU\",\"timestamp\":1495832844317, \"hipchat_room\": \"RKTest\"}",
         "resource": "/newrelic-hipchat-lambda",
         "requestContext": {
             "resourceId": "a99a99",
@@ -196,6 +220,82 @@ if __name__ == "__main__":
         "stageVariables": null,
         "path": "/newrelic-hipchat-lambda",
         "isBase64Encoded": false
-    }
+    })
 
-    print lambda_handler(payload)
+    # new format condition_name - warning
+    payloads.append({
+            "body": "{\"owner\":\"\",\"severity\":\"INFO\",\"policy_url\":\"https://alerts.newrelic.com/accounts/0000000/policies/99999\",\"current_state\":\"open\",\"policy_name\":\"hb-infra-default-system-prod\",\"incident_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470\",\"incident_acknowledge_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470/acknowledge\",\"targets\":[{\"id\":\"3629392770913172224\",\"name\":\"3629392770913172224\",\"link\":\"https://infrastructure.newrelic.com/accounts/0000000/alertLanding?violationId=jklfelsdjkljfkldsjfkljkl\",\"labels\":{},\"product\":\"INFRASTRUCTURE\",\"type\":\"Host\"}],\"condition_id\":9999999,\"account_id\":1000000,\"event_type\":\"INCIDENT\",\"incident_id\":99999,\"runbook_url\":null,\"account_name\":\"RK-TEST-ACCOUNT\",\"details\":\"All CPU: Critical on git-192-168-70-171\",\"condition_name\":\"system-memory-used-percent-warn\",\"timestamp\":1495832844317, \"hipchat_room\": \"RKTest\"}",
+        "resource": "/newrelic-hipchat-lambda",
+        "requestContext": {
+            "resourceId": "a99a99",
+            "apiId": "redacted",
+            "resourcePath": "/newrelic-hipchat-lambda",
+            "httpMethod": "POST",
+            "requestId": "test-invoke-request",
+            "path": "/newrelic-hipchat-lambda",
+            "accountId": "99999999999",
+            "identity": {
+                "apiKey": "test-invoke-api-key",
+                "userArn": "arn:aws:iam::99999999999:root",
+                "cognitoAuthenticationType": null,
+                "accessKey": "REDACTED",
+                "caller": "99999999999",
+                "userAgent": "Apache-HttpClient/4.5.x (Java/1.8.0_112)",
+                "user": "99999999999",
+                "cognitoIdentityPoolId": null,
+                "cognitoIdentityId": null,
+                "cognitoAuthenticationProvider": null,
+                "sourceIp": "test-invoke-source-ip",
+                "accountId": "99999999999"
+            },
+            "stage": "test-invoke-stage"
+        },
+        "queryStringParameters": null,
+        "httpMethod": "POST",
+        "pathParameters": null,
+        "headers": null,
+        "stageVariables": null,
+        "path": "/newrelic-hipchat-lambda",
+        "isBase64Encoded": false
+    })
+
+    # new format condition_name - error
+    payloads.append({
+            "body": "{\"owner\":\"\",\"severity\":\"INFO\",\"policy_url\":\"https://alerts.newrelic.com/accounts/0000000/policies/99999\",\"current_state\":\"open\",\"policy_name\":\"hb-infra-default-system-prod\",\"incident_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470\",\"incident_acknowledge_url\":\"https://alerts.newrelic.com/accounts/0000000/incidents/6403470/acknowledge\",\"targets\":[{\"id\":\"3629392770913172224\",\"name\":\"3629392770913172224\",\"link\":\"https://infrastructure.newrelic.com/accounts/0000000/alertLanding?violationId=jklfelsdjkljfkldsjfkljkl\",\"labels\":{},\"product\":\"INFRASTRUCTURE\",\"type\":\"Host\"}],\"condition_id\":9999999,\"account_id\":1000000,\"event_type\":\"INCIDENT\",\"incident_id\":99999,\"runbook_url\":null,\"account_name\":\"RK-TEST-ACCOUNT\",\"details\":\"All CPU: Critical on git-192-168-70-171\",\"condition_name\":\"system-memory-used-percent-error\",\"timestamp\":1495832844317, \"hipchat_room\": \"RKTest\"}",
+        "resource": "/newrelic-hipchat-lambda",
+        "requestContext": {
+            "resourceId": "a99a99",
+            "apiId": "redacted",
+            "resourcePath": "/newrelic-hipchat-lambda",
+            "httpMethod": "POST",
+            "requestId": "test-invoke-request",
+            "path": "/newrelic-hipchat-lambda",
+            "accountId": "99999999999",
+            "identity": {
+                "apiKey": "test-invoke-api-key",
+                "userArn": "arn:aws:iam::99999999999:root",
+                "cognitoAuthenticationType": null,
+                "accessKey": "REDACTED",
+                "caller": "99999999999",
+                "userAgent": "Apache-HttpClient/4.5.x (Java/1.8.0_112)",
+                "user": "99999999999",
+                "cognitoIdentityPoolId": null,
+                "cognitoIdentityId": null,
+                "cognitoAuthenticationProvider": null,
+                "sourceIp": "test-invoke-source-ip",
+                "accountId": "99999999999"
+            },
+            "stage": "test-invoke-stage"
+        },
+        "queryStringParameters": null,
+        "httpMethod": "POST",
+        "pathParameters": null,
+        "headers": null,
+        "stageVariables": null,
+        "path": "/newrelic-hipchat-lambda",
+        "isBase64Encoded": false
+    })
+
+
+    for test in payloads:
+        print lambda_handler(test)
